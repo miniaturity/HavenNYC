@@ -156,11 +156,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   team: 1
   walkSpeed: 3.5
+  walkAcceleration: 12
+  iceFriction: 4
   chargeTime: 0.8
   minSlideSpeed: 5
   maxSlideSpeed: 14
   slideDeceleration: 16
   slideCooldown: 0.35
+  aimSmoothing: 12
+  standingSprite: {fileID: 21300000, guid: f8fbe2fc4df72db40b6c15db243b1e6f, type: 3}
+  slidingSprite: {fileID: 21300000, guid: c933160d50b34154d9e25dc1aa2465cb, type: 3}
+  spriteFacesRight: 1
+  slidingSpriteFacesRight: 1
   arrowWidth: 0.18
   arrowHeadWidth: 0.55
   arrowHeadLength: 0.5
@@ -402,7 +409,7 @@ Transform:
   m_GameObject: {fileID: 89720491}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.4573973, y: -0.035489954, z: 0}
+  m_LocalPosition: {x: -1.85, y: -0.07, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -422,11 +429,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   team: 0
   walkSpeed: 3.5
+  walkAcceleration: 12
+  iceFriction: 4
   chargeTime: 0.8
   minSlideSpeed: 5
   maxSlideSpeed: 14
   slideDeceleration: 16
   slideCooldown: 0.35
+  aimSmoothing: 12
+  standingSprite: {fileID: 21300000, guid: bbb6ff844e647d846877fd936830dcbb, type: 3}
+  slidingSprite: {fileID: 21300000, guid: c6cfc76de5e09c34cac9d0f5c60a63ea, type: 3}
+  spriteFacesRight: 1
+  slidingSpriteFacesRight: 1
   arrowWidth: 0.18
   arrowHeadWidth: 0.55
   arrowHeadLength: 0.5
@@ -472,7 +486,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 0}
+    m_TransformParent: {fileID: 164700220}
     m_Modifications:
     - target: {fileID: 3618330496093312848, guid: 7a844aabb13567a4289344e8db01e14e, type: 3}
       propertyPath: m_SortingOrder
@@ -500,15 +514,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7787156132624724108, guid: 7a844aabb13567a4289344e8db01e14e, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 7787156132624724108, guid: 7a844aabb13567a4289344e8db01e14e, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 7787156132624724108, guid: 7a844aabb13567a4289344e8db01e14e, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 7787156132624724108, guid: 7a844aabb13567a4289344e8db01e14e, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -596,9 +610,15 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 576320274}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &576320274 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7787156132624724108, guid: 7a844aabb13567a4289344e8db01e14e, type: 3}
+  m_PrefabInstance: {fileID: 95865251}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &612563873
 GameObject:
   m_ObjectHideFlags: 0
@@ -611,7 +631,7 @@ GameObject:
   - component: {fileID: 612563874}
   - component: {fileID: 612563876}
   m_Layer: 0
-  m_Name: Ice
+  m_Name: Iceberg
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -713,10 +733,10 @@ BoxCollider2D:
   m_CallbackLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IsTrigger: 1
+  m_IsTrigger: 0
   m_UsedByEffector: 0
   m_UsedByComposite: 0
-  m_Offset: {x: 0, y: 0}
+  m_Offset: {x: -0.0012899339, y: 0.004493758}
   m_SpriteTilingProperty:
     border: {x: 0.060000002, y: 0.060000002, z: 0.060000002, w: 0.060000002}
     pivot: {x: 0.5, y: 0.5}
@@ -727,7 +747,7 @@ BoxCollider2D:
     adaptiveTiling: 0
   m_AutoTiling: 0
   serializedVersion: 2
-  m_Size: {x: 0.18, y: 0.18}
+  m_Size: {x: 0.19488388, y: 0.3416176}
   m_EdgeRadius: 0
 --- !u!1 &848252322
 GameObject:
@@ -1066,4 +1086,3 @@ SceneRoots:
   - {fileID: 22210861}
   - {fileID: 1156859192}
   - {fileID: 164700220}
-  - {fileID: 95865251}

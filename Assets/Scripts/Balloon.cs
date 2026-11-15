@@ -120,7 +120,7 @@ public class Balloon : MonoBehaviour
         if (Time.time - lastHitTime < hitCooldown) return;
         if (height > maxHittableHeight) return;
 
-        IBalloonHitter hitter = collision.collider.GetComponentInParent<IBalloonHitter>();
+        IBalloonHitter hitter = collision.collider.GetComponentInParent<Player>().hitter;
         if (hitter == null) return;
 
         Vector2 playerVel = collision.rigidbody != null

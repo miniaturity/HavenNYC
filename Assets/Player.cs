@@ -1,15 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
-using UnityEditor.DeviceSimulation;
 using UnityEngine;
 using UnityEngine.XR;
 
 public class Player : MonoBehaviour
 {
-    public bool isPlayer1;
-    private Touch player;
-    public GameObject gameManager;
+    public Touch playerType;
+    public IBalloonHitter hitter => playerType == Touch.Red ? new Red(this) : new Blue(this);
 
     [Header("Movement")]
     public float acceleration;
@@ -18,29 +16,24 @@ public class Player : MonoBehaviour
     private Vector2 dir = Vector2.zero;
 
     [Header("Sliding")]
-    private bool isSliding;
+    public bool isSliding;
     public float slideSpeed;
     public float maxSlidePower;
     private float slidePower;
     private bool isCharging = false;
 
-    private void Start()
-    {
-        player = isPlayer1 ? Touch.Red : Touch.Blue;
-        gameManager = GameObject.Find("Game Manager");
-    }
     // Update is called once per frame
     void Update()
     {
-        if (isPlayer1)
+        if (playerType == Touch.Red)
             Player1Movement();
-        else
+        else if (playerType == Touch.Blue)
             Player2Movement();
 
-        if (Mathf.Abs(transform.position.x) > 8.5 || Mathf.Abs(transform.position.y) > 5)
+        if (transform.position.x == 8.5 || transform.position.y == 15.5)
         {
             Destroy(gameObject);
-            gameManager.GetComponent<GameManager>().OffBoard(player);
+            // LOSE ROUND
         }
     }
 
@@ -138,5 +131,30 @@ public class Player : MonoBehaviour
         rb.velocity = Vector2.zero;
         rb.AddForce(dir * power * slideSpeed, ForceMode2D.Impulse);
         isSliding = true;
+    }
+}
+
+
+class Red : IBalloonHitter
+{
+    public Player player;
+    public Touch Team => Touch.Red;
+    public bool IsSliding => player.isSliding;
+
+    public Red(Player p)
+    {
+        player = p;
+    }
+}
+
+class Blue : IBalloonHitter
+{
+    public Player player;
+    public Touch Team => Touch.Blue;
+    public bool IsSliding => player.isSliding;
+
+    public Blue(Player p)
+    {
+        player = p;
     }
 }

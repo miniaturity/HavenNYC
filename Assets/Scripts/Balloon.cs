@@ -57,13 +57,8 @@ public class Balloon : MonoBehaviour
 
     private Vector2 Velocity
     {
-#if UNITY_6000_0_OR_NEWER
-        get => rb.linearVelocity;
-        set => rb.linearVelocity = value;
-#else
         get => rb.velocity;
         set => rb.velocity = value;
-#endif
     }
 
     void Start()
@@ -73,11 +68,8 @@ public class Balloon : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
 
         rb.gravityScale = 0f;
-#if UNITY_6000_0_OR_NEWER
-        rb.linearDamping = airDrag;
-#else
+
         rb.drag = airDrag;
-#endif
         rb.freezeRotation = true;
 
         UpdateScale();
@@ -132,11 +124,7 @@ public class Balloon : MonoBehaviour
         if (hitter == null) return;
 
         Vector2 playerVel = collision.rigidbody != null
-#if UNITY_6000_0_OR_NEWER
-            ? collision.rigidbody.linearVelocity
-#else
             ? collision.rigidbody.velocity
-#endif
             : -collision.relativeVelocity;
 
         float speed = playerVel.magnitude;

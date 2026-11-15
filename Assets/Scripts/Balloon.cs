@@ -1,99 +1,101 @@
-using System;
-using System.Collections.Generic;
 using UnityEngine;
 
-public enum Touch
-{
-    Red,
-    Blue,
-    None
-}
-
-public interface IBalloonHitter
-{
-    Touch Team { get; }
-    bool IsSliding { get; }
-}
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(BoxCollider2D))]
 public class Balloon : MonoBehaviour
 {
-    private const float SLIDE_MULTIPLIER = 2f;
-    private const float DEFAULT_MULTIPLIER = 1.5f;
-
+    [Header("References")]
     [SerializeField] private BoxCollider2D c;
     [SerializeField] private SpriteRenderer sr;
     [SerializeField] private Rigidbody2D rb;
+    [Tooltip("Optional. If empty, looks for a scene object named 'Iceberg'.")]
+    [SerializeField] private Collider2D iceberg;
 
-    [SerializeField] private Touch lastPlayerHit = Touch.None;
-    [SerializeField] private float height = 2f;
+    [Header("State (read-only)")]
+    [SerializeField] private Team lastPlayerHit = Team.None;
+    [SerializeField] private float height = 1.2f;
     [SerializeField] private float heightVelocity = 0f;
 
-    [SerializeField] private float gravity = 4f;
-    [SerializeField] private float maxFallSpeed = 1.2f;
-    [SerializeField] private float maxRiseSpeed = 14f;
-    [SerializeField] private float maxHeight = 12f;
-    [SerializeField] private float verticalFactor = 0.8f;
-    [SerializeField] private float minHitLift = 2.5f;
-    [SerializeField] private float maxHittableHeight = 1.5f;
+    [Header("Height physics")]
+    [SerializeField] private float gravity = 10f;
+    [SerializeField] private float maxFallSpeed = 7f;
+    [SerializeField] private float maxRiseSpeed = 12f;
+    [SerializeField] private float maxHeight = 8f;
+    [SerializeField] private float serveHeight = 1.2f;
+    [Tooltip("Balloon can only be hit while at or below this height.")]
+    [SerializeField] private float maxHittableHeight = 2f;
 
-    [SerializeField] private float horizontalFactor = 0.9f;
-    [SerializeField] private float maxHorizontalSpeed = 15f;
+    [Header("Hit response")]
+    [SerializeField] private float liftFactor = 0.55f;
+    [SerializeField] private float minHitLift = 5f;
+    [SerializeField] private float horizontalFactor = 0.7f;
+    [SerializeField] private float minHorizontalSpeed = 4f;
+    [SerializeField] private float maxHorizontalSpeed = 11f;
+    [SerializeField] private float slideHitBonus = 1.25f;
     [Range(0f, 1f)] [SerializeField] private float velocityDirWeight = 0.75f;
     [SerializeField] private float minPlayerSpeed = 0.1f;
-    [SerializeField] private float airDrag = 0.6f;
-
-    [SerializeField] private float baseScale = 1f;
-    [SerializeField] private float scalePerHeight = 0.15f;
-
+    [SerializeField] private float airDrag = 0.7f;
     [SerializeField] private float hitCooldown = 0.15f;
 
-    private readonly List<Contact> contacts = new List<Contact>();
+    [Header("Look")]
+    [SerializeField] private float baseScale = 1f;
+    [SerializeField] private float scalePerHeight = 0.12f;
+    [Tooltip("How far from the server (toward the middle) the balloon hovers at the start of a round.")]
+    [SerializeField] private float serveDistance = 1.5f;
+
+    public Team NextHitter { get; private set; } = Team.Red;
+
+    private Vector2 groundVelocity;
     private float lastHitTime = -999f;
-    private bool gameOverSent = false;
+    private bool served = false;  
+    private bool roundEnded = false;
 
-    private float scale => Math.Max(baseScale + height * scalePerHeight, 0.1f);
+    private float Scale => Mathf.Max(baseScale + height * scalePerHeight, 0.1f);
 
-    private Vector2 Velocity
-    {
-        get => rb.velocity;
-        set => rb.velocity = value;
-    }
-
-    void Start()
+    void Awake()
     {
         c = GetComponent<BoxCollider2D>();
         sr = GetComponent<SpriteRenderer>();
         rb = GetComponent<Rigidbody2D>();
 
+        c.isTrigger = true;  
         rb.gravityScale = 0f;
-
-        rb.drag = airDrag;
         rb.freezeRotation = true;
+    }
 
+    void Start()
+    {
+        if (iceberg == null)
+        {
+            GameObject g = GameObject.Find("Iceberg");
+            if (g != null) iceberg = g.GetComponent<Collider2D>();
+        }
+
+        GameManager gm = GameManager.Instance;
+        NextHitter = gm != null ? gm.Server : Team.Red;
+        if (gm != null) gm.RegisterBalloon(this);
+
+        PlaceForServe();
+        height = serveHeight;
+        heightVelocity = 0f;
         UpdateScale();
     }
 
     void Update()
     {
-        if (sr == null || c == null || rb == null)
-        {
-            Debug.LogError("Balloon SR, C or RB is not defined!");
-            return;
-        }
-
         UpdateScale();
     }
 
     void FixedUpdate()
     {
-        if (gameOverSent) return;
+        if (roundEnded) return;
 
-        foreach (Contact contact in contacts)
-            ApplyContact(contact);
-        contacts.Clear();
+        groundVelocity *= Mathf.Max(0f, 1f - airDrag * Time.fixedDeltaTime);
+        Vector2 next = rb.position + groundVelocity * Time.fixedDeltaTime;
+        rb.MovePosition(next);
 
+        if (!served) return; 
         heightVelocity -= gravity * Time.fixedDeltaTime;
         heightVelocity = Mathf.Clamp(heightVelocity, -maxFallSpeed, maxRiseSpeed);
         height += heightVelocity * Time.fixedDeltaTime;
@@ -107,30 +109,28 @@ public class Balloon : MonoBehaviour
         if (height <= 0f)
         {
             height = 0f;
-            OnHitFloor();
+            OnHitFloor(next);
         }
     }
 
-    void OnCollisionEnter2D(Collision2D collision) => TryRegisterHit(collision);
-    void OnCollisionStay2D(Collision2D collision) => TryRegisterHit(collision);
+    void OnTriggerEnter2D(Collider2D other) => TryHit(other);
+    void OnTriggerStay2D(Collider2D other) => TryHit(other);
 
-    void TryRegisterHit(Collision2D collision)
+    void TryHit(Collider2D other)
     {
-        if (gameOverSent) return;
+        if (roundEnded) return;
         if (Time.time - lastHitTime < hitCooldown) return;
         if (height > maxHittableHeight) return;
 
-        IBalloonHitter hitter = collision.collider.GetComponentInParent<Player>().hitter;
+        IBalloonHitter hitter = other.GetComponentInParent<IBalloonHitter>();
         if (hitter == null) return;
+        if (hitter.Team != NextHitter) return; 
 
-        Vector2 playerVel = collision.rigidbody != null
-            ? collision.rigidbody.velocity
-            : -collision.relativeVelocity;
-
+        Vector2 playerVel = hitter.Velocity;
         float speed = playerVel.magnitude;
 
-        Vector2 away = ((Vector2)transform.position - (Vector2)collision.transform.position).normalized;
-        if (away == Vector2.zero) away = Vector2.up;
+        Vector2 away = (Vector2)transform.position - hitter.Position;
+        away = away.sqrMagnitude < 0.0001f ? Vector2.up : away.normalized;
 
         Vector2 dir = away;
         if (speed > minPlayerSpeed)
@@ -140,69 +140,52 @@ public class Balloon : MonoBehaviour
             if (dir == Vector2.zero) dir = moveDir;
         }
 
-        contacts.Add(new Contact(hitter.Team, dir, speed, hitter.IsSliding));
+        float power = speed * (hitter.IsSliding ? slideHitBonus : 1f);
+
+        groundVelocity = dir * Mathf.Clamp(power * horizontalFactor, minHorizontalSpeed, maxHorizontalSpeed);
+        heightVelocity = Mathf.Clamp(power * liftFactor, minHitLift, maxRiseSpeed);
+
+        lastPlayerHit = hitter.Team;
+        NextHitter = hitter.Team.Opponent();
         lastHitTime = Time.time;
+        served = true;
     }
 
-    void ApplyContact(Contact contact)
+    void OnHitFloor(Vector2 landingPos)
     {
-        float multiplier = contact.slideHit ? SLIDE_MULTIPLIER : DEFAULT_MULTIPLIER;
-        float power = contact.speed * multiplier;
-
-        lastPlayerHit = contact.owner;
-
-        heightVelocity = Mathf.Clamp(power * verticalFactor, minHitLift, maxRiseSpeed);
-
-        Vector2 horizontal = contact.dir * Mathf.Min(power * horizontalFactor, maxHorizontalSpeed);
-        Velocity = horizontal;
-    }
-
-
-    void OnHitFloor()
-    {
-        if (gameOverSent) return;
-        gameOverSent = true;
-
-        Velocity = Vector2.zero;
+        roundEnded = true;
+        groundVelocity = Vector2.zero;
         heightVelocity = 0f;
 
+        bool inBounds = iceberg == null || iceberg.OverlapPoint(landingPos);
+
+        Team winner = inBounds ? NextHitter.Opponent() : NextHitter;
+        string reason = inBounds ? "missed the balloon" : "balloon landed in the water";
+
         if (GameManager.Instance != null)
-            GameManager.Instance.OnBalloonHitFloor(lastPlayerHit);
+            GameManager.Instance.PointScored(winner, reason);
         else
-            Debug.LogWarning("Balloon hit the floor but no GameManager.Instance exists.");
+            Debug.LogWarning("Balloon hit the floor but there is no GameManager.");
     }
 
+    void PlaceForServe()
+    {
+        Player[] players = FindObjectsByType<Player>(FindObjectsSortMode.None);
+        foreach (Player p in players)
+        {
+            if (((IBalloonHitter)p).Team != NextHitter) continue;
+
+            Vector2 pos = ((IBalloonHitter)p).Position;
+            float towardCenter = pos.x > 0f ? -1f : 1f;
+            Vector2 spawn = pos + new Vector2(towardCenter * serveDistance, 0f);
+            transform.position = new Vector3(spawn.x, spawn.y, transform.position.z);
+            rb.position = spawn;
+            return;
+        }
+    }
 
     void UpdateScale()
     {
-        transform.localScale = new Vector3(scale, scale, 1f);
-    }
-
-    public void ResetBalloon(Vector2 position, float startHeight = 2f)
-    {
-        transform.position = new Vector3(position.x, position.y, transform.position.z);
-        height = startHeight;
-        heightVelocity = 0f;
-        Velocity = Vector2.zero;
-        lastPlayerHit = Touch.None;
-        gameOverSent = false;
-        contacts.Clear();
-        UpdateScale();
-    }
-}
-
-class Contact
-{
-    public Touch owner { get; }
-    public Vector2 dir { get; }
-    public float speed { get; }
-    public bool slideHit { get; }
-
-    public Contact(Touch owner_, Vector2 dir_, float speed_, bool slideHit_ = false)
-    {
-        owner = owner_;
-        dir = dir_;
-        speed = speed_;
-        slideHit = slideHit_;
+        transform.localScale = new Vector3(Scale, Scale, 1f);
     }
 }

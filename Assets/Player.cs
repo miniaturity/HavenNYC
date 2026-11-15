@@ -7,7 +7,6 @@ using UnityEngine.XR;
 public class Player : MonoBehaviour
 {
     public Touch playerType;
-    public GameManager gm;
     public IBalloonHitter hitter => playerType == Touch.Red ? new Red(this) : new Blue(this);
 
     [Header("Movement")]
@@ -23,10 +22,6 @@ public class Player : MonoBehaviour
     private float slidePower;
     private bool isCharging = false;
 
-    private void Start()
-    {
-        gm = GameObject.Find("Game Manager").GetComponent<GameManager>();
-    }
     // Update is called once per frame
     void Update()
     {
@@ -35,9 +30,10 @@ public class Player : MonoBehaviour
         else if (playerType == Touch.Blue)
             Player2Movement();
 
-        if (Mathf.Abs(transform.position.x) > 8.5 || Mathf.Abs(transform.position.y) > 9.5)
+        if (transform.position.x == 8.5 || transform.position.y == 15.5)
         {
-            gm.OffBoard(playerType);
+            Destroy(gameObject);
+            // LOSE ROUND
         }
     }
 

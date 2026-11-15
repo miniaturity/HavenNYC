@@ -19,7 +19,6 @@ public class Balloon : MonoBehaviour
     [SerializeField] private BoxCollider2D c;
     [SerializeField] private SpriteRenderer sr;
     
-
     private Contact[] contacts = new Contact[] {};
     private float scale => Math.Max(transform.position.z * 0.5f, 1f);
 
@@ -36,6 +35,8 @@ public class Balloon : MonoBehaviour
             Debug.LogError("Balloon SR or C is not defined!");
             return;
         }
+
+                
 
         UpdateScale();
     }

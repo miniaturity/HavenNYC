@@ -41,7 +41,6 @@ public class Balloon : MonoBehaviour
     [Header("Look")]
     [SerializeField] private float baseScale = 1f;
     [SerializeField] private float scalePerHeight = 0.12f;
-    [Tooltip("How far from the server (toward the middle) the balloon hovers at the start of a round.")]
     [SerializeField] private float serveDistance = 1.5f;
 
     public Team NextHitter { get; private set; } = Team.Red;

@@ -153,22 +153,12 @@ public class Player : MonoBehaviour, IBalloonHitter
         slideHeld = false;
         bool red = team == Team.Red;
 
-#if ENABLE_INPUT_SYSTEM
-        var k = UnityEngine.InputSystem.Keyboard.current;
-        if (k == null) return;
 
-        if ((red ? k.aKey : k.leftArrowKey).isPressed) dir.x -= 1f;
-        if ((red ? k.dKey : k.rightArrowKey).isPressed) dir.x += 1f;
-        if ((red ? k.sKey : k.downArrowKey).isPressed) dir.y -= 1f;
-        if ((red ? k.wKey : k.upArrowKey).isPressed) dir.y += 1f;
-        slideHeld = (red ? k.spaceKey : k.rightShiftKey).isPressed;
-#else
         if (Input.GetKey(red ? KeyCode.A : KeyCode.LeftArrow)) dir.x -= 1f;
         if (Input.GetKey(red ? KeyCode.D : KeyCode.RightArrow)) dir.x += 1f;
         if (Input.GetKey(red ? KeyCode.S : KeyCode.DownArrow)) dir.y -= 1f;
         if (Input.GetKey(red ? KeyCode.W : KeyCode.UpArrow)) dir.y += 1f;
         slideHeld = Input.GetKey(red ? KeyCode.Space : KeyCode.RightShift);
-#endif
     }
 
     void BuildArrow()

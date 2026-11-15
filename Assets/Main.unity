@@ -134,6 +134,7 @@ GameObject:
   - component: {fileID: 22210860}
   - component: {fileID: 22210859}
   - component: {fileID: 22210862}
+  - component: {fileID: 22210863}
   m_Layer: 0
   m_Name: Player 2
   m_TagString: Untagged
@@ -157,12 +158,8 @@ MonoBehaviour:
   acceleration: 3
   maxSpeed: 5
   rb: {fileID: 22210862}
-  dir: {x: 0, y: 0}
-  isSliding: 0
   slideSpeed: 10
   maxSlidePower: 5
-  slidePower: 0
-  isCharging: 0
 --- !u!212 &22210860
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -257,6 +254,41 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
+--- !u!58 &22210863
+CircleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 22210858}
+  m_Enabled: 1
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_UsedByComposite: 0
+  m_Offset: {x: 0, y: 0}
+  serializedVersion: 2
+  m_Radius: 0.5
 --- !u!1 &89720491
 GameObject:
   m_ObjectHideFlags: 0
@@ -267,8 +299,9 @@ GameObject:
   m_Component:
   - component: {fileID: 89720495}
   - component: {fileID: 89720494}
-  - component: {fileID: 89720493}
+  - component: {fileID: 89720496}
   - component: {fileID: 89720492}
+  - component: {fileID: 89720497}
   m_Layer: 0
   m_Name: Player 1
   m_TagString: Untagged
@@ -303,21 +336,6 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
---- !u!114 &89720493
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 89720491}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9b1a20fb9ed3e3a489301b577285efb2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  lastPlayerHit: 2
-  c: {fileID: 0}
-  sr: {fileID: 0}
 --- !u!212 &89720494
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -385,6 +403,59 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &89720496
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 89720491}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bfc23b9305108c47864957b4791e4e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  isPlayer1: 1
+  acceleration: 3
+  maxSpeed: 5
+  rb: {fileID: 89720492}
+  slideSpeed: 10
+  maxSlidePower: 5
+--- !u!58 &89720497
+CircleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 89720491}
+  m_Enabled: 1
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_UsedByComposite: 0
+  m_Offset: {x: 0, y: 0}
+  serializedVersion: 2
+  m_Radius: 0.5
 --- !u!1 &612563873
 GameObject:
   m_ObjectHideFlags: 0

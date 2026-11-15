@@ -1,12 +1,15 @@
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
+using UnityEditor.DeviceSimulation;
 using UnityEngine;
 using UnityEngine.XR;
 
 public class Player : MonoBehaviour
 {
     public bool isPlayer1;
+    private Touch player;
+    public GameObject gameManager;
 
     [Header("Movement")]
     public float acceleration;
@@ -21,6 +24,11 @@ public class Player : MonoBehaviour
     private float slidePower;
     private bool isCharging = false;
 
+    private void Start()
+    {
+        player = isPlayer1 ? Touch.Red : Touch.Blue;
+        gameManager = GameObject.Find("Game Manager");
+    }
     // Update is called once per frame
     void Update()
     {
@@ -29,10 +37,10 @@ public class Player : MonoBehaviour
         else
             Player2Movement();
 
-        if (transform.position.x == 8.5 || transform.position.y == 15.5)
+        if (Mathf.Abs(transform.position.x) > 8.5 || Mathf.Abs(transform.position.y) > 5)
         {
             Destroy(gameObject);
-            // LOSE ROUND
+            gameManager.GetComponent<GameManager>().OffBoard(player);
         }
     }
 

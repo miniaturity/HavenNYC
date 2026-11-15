@@ -1,16 +1,14 @@
 using UnityEngine;
 
-
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(BoxCollider2D))]
 public class Balloon : MonoBehaviour
 {
-    [Header("References")]
+    [Header("References (auto-filled)")]
     [SerializeField] private BoxCollider2D c;
     [SerializeField] private SpriteRenderer sr;
     [SerializeField] private Rigidbody2D rb;
-    [Tooltip("Optional. If empty, looks for a scene object named 'Iceberg'.")]
-    [SerializeField] private Collider2D iceberg;
+    private Arena arena;
 
     [Header("State (read-only)")]
     [SerializeField] private Team lastPlayerHit = Team.None;
@@ -38,17 +36,38 @@ public class Balloon : MonoBehaviour
     [SerializeField] private float airDrag = 0.7f;
     [SerializeField] private float hitCooldown = 0.15f;
 
+    [Header("Invisible walls")]
+    [Tooltip("Bounce off the edge of the Arena instead of flying out over the water.")]
+    [SerializeField] private bool bounceOffWalls = true;
+    [Range(0f, 1f)] [SerializeField] private float wallBounciness = 0.8f;
+
     [Header("Look")]
     [SerializeField] private float baseScale = 1f;
     [SerializeField] private float scalePerHeight = 0.12f;
+    [Tooltip("World units the balloon is drawn above the ground per unit of height.")]
+    [SerializeField] private float visualLiftPerHeight = 0.3f;
+    [Tooltip("How far from the server (toward the middle) the balloon hovers at the start of a round.")]
     [SerializeField] private float serveDistance = 1.5f;
+
+    [Header("Shadow")]
+    [SerializeField] private float shadowWidth = 0.9f;
+    [Range(0.2f, 1f)] [SerializeField] private float shadowSquash = 0.5f;
+    [SerializeField] private float shadowShrinkPerHeight = 0.1f;
+    [Range(0f, 1f)] [SerializeField] private float shadowMaxAlpha = 0.35f;
+    [Range(0f, 1f)] [SerializeField] private float shadowMinAlpha = 0.12f;
+    [SerializeField] private Vector2 shadowOffset = new Vector2(0f, -0.1f);
 
     public Team NextHitter { get; private set; } = Team.Red;
 
     private Vector2 groundVelocity;
     private float lastHitTime = -999f;
-    private bool served = false;  
+    private bool served = false;
     private bool roundEnded = false;
+
+    private Transform visual;
+    private SpriteRenderer visualSr;
+    private Transform shadow;
+    private SpriteRenderer shadowSr;
 
     private float Scale => Mathf.Max(baseScale + height * scalePerHeight, 0.1f);
 
@@ -58,18 +77,18 @@ public class Balloon : MonoBehaviour
         sr = GetComponent<SpriteRenderer>();
         rb = GetComponent<Rigidbody2D>();
 
-        c.isTrigger = true;  
+        c.isTrigger = true;
         rb.gravityScale = 0f;
         rb.freezeRotation = true;
+        rb.interpolation = RigidbodyInterpolation2D.Interpolate;
+
+        transform.localScale = Vector3.one * baseScale;
+        BuildVisuals();
     }
 
     void Start()
     {
-        if (iceberg == null)
-        {
-            GameObject g = GameObject.Find("Iceberg");
-            if (g != null) iceberg = g.GetComponent<Collider2D>();
-        }
+        arena = Arena.Get();
 
         GameManager gm = GameManager.Instance;
         NextHitter = gm != null ? gm.Server : Team.Red;
@@ -78,12 +97,12 @@ public class Balloon : MonoBehaviour
         PlaceForServe();
         height = serveHeight;
         heightVelocity = 0f;
-        UpdateScale();
+        UpdateVisuals();
     }
 
-    void Update()
+    void LateUpdate()
     {
-        UpdateScale();
+        UpdateVisuals();
     }
 
     void FixedUpdate()
@@ -92,9 +111,14 @@ public class Balloon : MonoBehaviour
 
         groundVelocity *= Mathf.Max(0f, 1f - airDrag * Time.fixedDeltaTime);
         Vector2 next = rb.position + groundVelocity * Time.fixedDeltaTime;
+
+        if (bounceOffWalls && arena != null && !arena.Contains(next))
+            next = BounceOffWall(next);
+
         rb.MovePosition(next);
 
-        if (!served) return; 
+        if (!served) return;
+
         heightVelocity -= gravity * Time.fixedDeltaTime;
         heightVelocity = Mathf.Clamp(heightVelocity, -maxFallSpeed, maxRiseSpeed);
         height += heightVelocity * Time.fixedDeltaTime;
@@ -112,6 +136,16 @@ public class Balloon : MonoBehaviour
         }
     }
 
+    Vector2 BounceOffWall(Vector2 outsidePos)
+    {
+        arena.Clamp(outsidePos, out Vector2 edge, out Vector2 normal);
+
+        if (Vector2.Dot(groundVelocity, normal) > 0f)
+            groundVelocity = Vector2.Reflect(groundVelocity, normal) * wallBounciness;
+
+        return edge - normal * 0.02f;
+    }
+
     void OnTriggerEnter2D(Collider2D other) => TryHit(other);
     void OnTriggerStay2D(Collider2D other) => TryHit(other);
 
@@ -123,7 +157,7 @@ public class Balloon : MonoBehaviour
 
         IBalloonHitter hitter = other.GetComponentInParent<IBalloonHitter>();
         if (hitter == null) return;
-        if (hitter.Team != NextHitter) return; 
+        if (hitter.Team != NextHitter) return;
 
         Vector2 playerVel = hitter.Velocity;
         float speed = playerVel.magnitude;
@@ -156,7 +190,7 @@ public class Balloon : MonoBehaviour
         groundVelocity = Vector2.zero;
         heightVelocity = 0f;
 
-        bool inBounds = iceberg == null || iceberg.OverlapPoint(landingPos);
+        bool inBounds = arena == null || arena.Contains(landingPos);
 
         Team winner = inBounds ? NextHitter.Opponent() : NextHitter;
         string reason = inBounds ? "missed the balloon" : "balloon landed in the water";
@@ -183,8 +217,70 @@ public class Balloon : MonoBehaviour
         }
     }
 
-    void UpdateScale()
+    void BuildVisuals()
     {
-        transform.localScale = new Vector3(Scale, Scale, 1f);
+        if (sr == null)
+        {
+            Debug.LogWarning("Balloon needs a SpriteRenderer.");
+            return;
+        }
+
+        GameObject sg = new GameObject("Shadow");
+        shadow = sg.transform;
+        shadow.SetParent(transform, false);
+        shadowSr = sg.AddComponent<SpriteRenderer>();
+        shadowSr.sprite = MakeShadowSprite();
+        shadowSr.sortingLayerID = sr.sortingLayerID;
+        shadowSr.sortingOrder = sr.sortingOrder;
+
+        GameObject vg = new GameObject("Visual");
+        visual = vg.transform;
+        visual.SetParent(transform, false);
+        visualSr = vg.AddComponent<SpriteRenderer>();
+        visualSr.sprite = sr.sprite;
+        visualSr.color = sr.color;
+        visualSr.sharedMaterial = sr.sharedMaterial;
+        visualSr.sortingLayerID = sr.sortingLayerID;
+        visualSr.sortingOrder = sr.sortingOrder + 1;
+        sr.enabled = false;
+    }
+
+    Sprite MakeShadowSprite()
+    {
+        const int size = 64;
+        Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        tex.wrapMode = TextureWrapMode.Clamp;
+        tex.filterMode = FilterMode.Bilinear;
+
+        Vector2 center = new Vector2(size - 1, size - 1) * 0.5f;
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float d = Vector2.Distance(new Vector2(x, y), center) / (size * 0.5f);
+                float a = Mathf.Clamp01((1f - d) * 4f);
+                tex.SetPixel(x, y, new Color(0f, 0f, 0f, a));
+            }
+        }
+        tex.Apply();
+
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+    }
+
+    void UpdateVisuals()
+    {
+        if (visual == null || shadow == null) return;
+
+        float inv = 1f / Mathf.Max(baseScale, 0.01f);
+
+        visual.position = transform.position + Vector3.up * (height * visualLiftPerHeight);
+        visual.localScale = new Vector3(Scale * inv, Scale * inv, 1f);
+
+        float s = shadowWidth / (1f + height * shadowShrinkPerHeight);
+        shadow.position = transform.position + (Vector3)shadowOffset;
+        shadow.localScale = new Vector3(s * inv, s * shadowSquash * inv, 1f);
+
+        float t = Mathf.Clamp01(height / Mathf.Max(maxHeight, 0.01f));
+        shadowSr.color = new Color(0f, 0f, 0f, Mathf.Lerp(shadowMaxAlpha, shadowMinAlpha, t));
     }
 }

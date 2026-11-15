@@ -114,7 +114,7 @@ public class GameManager : MonoBehaviour
 
         if (!string.IsNullOrEmpty(message))
         {
-            GUI.color = Color.white;
+            GUI.color = Color.black;
             GUI.Label(new Rect(cx - 300, 100, 600, 40), message, style);
         }
     }
